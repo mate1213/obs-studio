@@ -21,22 +21,26 @@ public:
 	Multiview();
 	~Multiview();
 	void Update(MultiviewLayout multiviewLayout, bool drawLabel,
-		    bool drawSafeArea);
+		    bool drawSafeArea, bool drawAudioMeter);
 	void Render(uint32_t cx, uint32_t cy);
 	OBSSource GetSourceByPosition(int x, int y);
 
 private:
-	bool drawLabel, drawSafeArea;
-	MultiviewLayout multiviewLayout;
+	bool drawLabel, drawSafeArea, drawAudioMeter;
+	float currentMagnitude[MAX_AUDIO_CHANNELS];
+	double minimumLevel;
 	size_t maxSrcs, numSrcs;
+	MultiviewLayout multiviewLayout;
 	gs_vertbuffer_t *actionSafeMargin = nullptr;
 	gs_vertbuffer_t *graphicsSafeMargin = nullptr;
 	gs_vertbuffer_t *fourByThreeSafeMargin = nullptr;
 	gs_vertbuffer_t *leftLine = nullptr;
 	gs_vertbuffer_t *topLine = nullptr;
 	gs_vertbuffer_t *rightLine = nullptr;
+	OBSVolMeter obs_volmeter;
 
 	std::vector<OBSWeakSource> multiviewScenes;
+	std::vector <OBSWeakSource> audioSource;
 	std::vector<OBSSource> multiviewLabels;
 
 	// Multiview position helpers
@@ -52,6 +56,23 @@ private:
 	static const uint32_t backgroundColor = 0xFF000000;
 	static const uint32_t previewColor = 0xFF00D000;
 	static const uint32_t programColor = 0xFFD00000;
+	uint32_t audioForegroundColor = 0xFF4CFF4C;
+
+	// Volume printing
+	static void OBSVolumeLevelChanged(void *data,
+				   const float magnitude[MAX_AUDIO_CHANNELS],
+				   const float peak[MAX_AUDIO_CHANNELS],
+				   const float inputPeak[MAX_AUDIO_CHANNELS]);
+	void setLevels(const float magnitude[MAX_AUDIO_CHANNELS],
+		       const float peak[MAX_AUDIO_CHANNELS],
+		       const float inputPeak[MAX_AUDIO_CHANNELS]);
+	inline void calculateBallistics(uint64_t ts,
+					double timeSinceLastRedraw = 0.0);
+	inline void calculateBallisticsForChannel(int channelNr, uint64_t ts,
+						  double timeSinceLastRedraw);
+	inline int convertToInt(float number);
+	void InitAudioMeter();
+	void RenderAudioMeter();
 };
 
 static inline void startRegion(int vX, int vY, int vCX, int vCY, float oL,

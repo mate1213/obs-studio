@@ -3,11 +3,16 @@
 #include "obs-app.hpp"
 #include "platform.hpp"
 #include "display-helpers.hpp"
+#include "obs-audio-controls.h"
+#include "obs.h"
+#include "obs-source.h"
 
+#define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 Multiview::Multiview()
 {
 	InitSafeAreas(&actionSafeMargin, &graphicsSafeMargin,
 		      &fourByThreeSafeMargin, &leftLine, &topLine, &rightLine);
+	InitAudioMeter();
 }
 
 Multiview::~Multiview()
@@ -65,11 +70,12 @@ static OBSSource CreateLabel(const char *name, size_t h)
 }
 
 void Multiview::Update(MultiviewLayout multiviewLayout, bool drawLabel,
-		       bool drawSafeArea)
+		       bool drawSafeArea, bool drawAudioMeter)
 {
 	this->multiviewLayout = multiviewLayout;
 	this->drawLabel = drawLabel;
 	this->drawSafeArea = drawSafeArea;
+	this->drawAudioMeter = drawAudioMeter;
 
 	multiviewScenes.clear();
 	multiviewLabels.clear();
@@ -541,6 +547,11 @@ void Multiview::Render(uint32_t cx, uint32_t cy)
 		gs_matrix_pop();
 	}
 
+	// Draw audioMeter on Program
+	if (drawAudioMeter) {
+		RenderAudioMeter();
+	}
+
 	// Region for future usage with additional info.
 	if (multiviewLayout == MultiviewLayout::HORIZONTAL_TOP_24_SCENES) {
 		// Just paint the background for now
@@ -757,4 +768,125 @@ OBSSource Multiview::GetSourceByPosition(int x, int y)
 	if (pos < 0 || pos >= (int)numSrcs)
 		return nullptr;
 	return OBSGetStrongRef(multiviewScenes[pos]);
+}
+
+//TOD: Refactor AudioMeterDrawing into new class
+void Multiview::InitAudioMeter()
+{
+	//Gether audioSources
+	uint32_t channelId = 1;
+	minimumLevel = -60.0f;
+	std::vector<std::string> channels = {"desktop1", "desktop2", "mic1",
+					     "mic2",     "mic3",     "mic4"};
+	for (auto &channel : channels) {
+		const char *name;
+		OBSSourceAutoRelease input = obs_get_output_source(channelId);
+		if (input) {
+			audioSource.emplace_back(OBSGetWeakRef(input));
+			name = obs_source_get_name(input);
+		}
+		channelId++;
+	}
+
+	obs_volmeter = obs_volmeter_create(OBS_FADER_LOG);
+	obs_volmeter_add_callback(obs_volmeter, OBSVolumeLevelChanged, this);
+
+	OBSSource src = OBSGetStrongRef(audioSource[0]);
+	obs_volmeter_attach_source(obs_volmeter, src);
+}
+
+#define VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS 10
+#define HORIZONTAL_PADDING_OF_VOLUME_METER 50
+#define NUMBER_OF_VOLUME_METER_RECTENGELS 36
+void Multiview::RenderAudioMeter()
+{
+	//calcPreviewProgram(true);
+	auto drawBox = [&](float cx, float cy, uint32_t colorVal) {
+		gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_SOLID);
+		gs_eparam_t *color =
+			gs_effect_get_param_by_name(solid, "color");
+
+		gs_effect_set_color(color, colorVal);
+		while (gs_effect_loop(solid, "Solid"))
+			gs_draw_sprite(nullptr, 0, (uint32_t)cx, (uint32_t)cy);
+	};
+	auto paintAreaWithColor = [&](float tx, float ty, float cx, float cy,
+				      uint32_t color) {
+		gs_matrix_push();
+		gs_matrix_translate3f(tx, ty, 0.0f);
+		drawBox(cx, cy, color);
+		gs_matrix_pop();
+	};
+
+	float scale = NUMBER_OF_VOLUME_METER_RECTENGELS / minimumLevel;
+
+	float unusableSpace = (VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS *
+			       (NUMBER_OF_VOLUME_METER_RECTENGELS + 5));
+	float sizeOfRectengles = ppiCY / ((ppiCY - unusableSpace) /
+					  (NUMBER_OF_VOLUME_METER_RECTENGELS));
+	float xCoordinate = sourceX + 100;
+	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {
+		if (!isfinite(currentMagnitude[channelNr]))
+			continue;
+		float offsetY = VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS * 2;
+		int drawBars =
+			convertToInt(currentMagnitude[channelNr] * scale);
+		drawBars = NUMBER_OF_VOLUME_METER_RECTENGELS - drawBars;
+		if (drawBars<0)
+			drawBars = 0;
+		for (int i = 0; i < drawBars; i++) {
+			float sound = (i+1) / scale;
+			if ((minimumLevel - sound) > -5) {
+				audioForegroundColor = 0xFFFF4C4C;
+			}
+			else if ((minimumLevel - sound) > -20) {
+				audioForegroundColor = 0xFFFFFF4C;
+			}
+			else {
+				audioForegroundColor = 0xFF4CFF4C;
+			}
+			offsetY += VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS;
+			offsetY += ppiCY / sizeOfRectengles;
+			float yCoordinate = sourceY + ppiCY - offsetY;
+			paintAreaWithColor(xCoordinate, yCoordinate,
+					   ppiCX / sizeOfRectengles,
+					   ppiCY / sizeOfRectengles,
+					   audioForegroundColor);
+		}
+		xCoordinate += HORIZONTAL_PADDING_OF_VOLUME_METER +
+			       ppiCX / sizeOfRectengles;
+	}
+}
+
+void Multiview::OBSVolumeLevelChanged(void *data,
+				      const float magnitude[MAX_AUDIO_CHANNELS],
+				      const float peak[MAX_AUDIO_CHANNELS],
+				      const float inputPeak[MAX_AUDIO_CHANNELS])
+{
+	Multiview *volControl = static_cast<Multiview *>(data);
+
+	volControl->setLevels(magnitude, peak, inputPeak);
+}
+
+void Multiview::setLevels(const float magnitude[MAX_AUDIO_CHANNELS],
+			  const float peak[MAX_AUDIO_CHANNELS],
+			  const float inputPeak[MAX_AUDIO_CHANNELS])
+{
+	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {
+		currentMagnitude[channelNr] = magnitude[channelNr];
+	}
+}
+
+inline int Multiview::convertToInt(float number)
+{
+	constexpr int min = std::numeric_limits<int>::min();
+	constexpr int max = std::numeric_limits<int>::max();
+
+	// NOTE: Conversion from 'const int' to 'float' changes max value from 2147483647 to 2147483648
+	if (number >= (float)max)
+		return max;
+	else if (number < min)
+		return min;
+	else
+		return int(number);
 }
