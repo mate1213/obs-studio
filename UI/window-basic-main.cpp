@@ -3339,16 +3339,6 @@ void OBSBasic::RenameSources(OBSSource source, QString newName,
 {
 	RenameListValues(ui->scenes, newName, prevName);
 
-	for (size_t i = 0; i < volumes.size(); i++) {
-		if (volumes[i]->GetName().compare(prevName) == 0)
-			volumes[i]->SetName(newName);
-	}
-
-	for (size_t i = 0; i < projectors.size(); i++) {
-		if (projectors[i]->GetSource() == source)
-			projectors[i]->RenameProjector(prevName, newName);
-	}
-
 	if (vcamConfig.type == VCamOutputType::SourceOutput &&
 	    prevName == QString::fromStdString(vcamConfig.source))
 		vcamConfig.source = newName.toStdString();
@@ -3833,14 +3823,8 @@ void OBSBasic::VolControlContextMenu()
 
 	copyFiltersAction.setEnabled(obs_source_filter_count(vol->GetSource()) >
 				     0);
-
-	OBSSourceAutoRelease source =
-		obs_weak_source_get_source(copyFiltersSource);
-	if (source) {
-		pasteFiltersAction.setEnabled(true);
-	} else {
-		pasteFiltersAction.setEnabled(false);
-	}
+	pasteFiltersAction.setEnabled(
+		!obs_weak_source_expired(copyFiltersSource));
 
 	QMenu popup;
 	vol->SetContextMenu(&popup);
