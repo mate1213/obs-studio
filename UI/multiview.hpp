@@ -66,10 +66,6 @@ private:
 	void setLevels(const float magnitude[MAX_AUDIO_CHANNELS],
 		       const float peak[MAX_AUDIO_CHANNELS],
 		       const float inputPeak[MAX_AUDIO_CHANNELS]);
-	inline void calculateBallistics(uint64_t ts,
-					double timeSinceLastRedraw = 0.0);
-	inline void calculateBallisticsForChannel(int channelNr, uint64_t ts,
-						  double timeSinceLastRedraw);
 	inline int convertToInt(float number);
 	void InitAudioMeter();
 	void RenderAudioMeter();
