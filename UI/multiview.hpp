@@ -69,6 +69,8 @@ private:
 	inline int convertToInt(float number);
 	void InitAudioMeter();
 	void RenderAudioMeter();
+	void DrawScale(int indexFromLast, float xCoordinate, float yCoordinate);
+	float round(float var);
 };
 
 static inline void startRegion(int vX, int vY, int vCX, int vCY, float oL,

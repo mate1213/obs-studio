@@ -185,6 +185,19 @@ void Multiview::Update(MultiviewLayout multiviewLayout, bool drawLabel,
 	}
 
 	obs_frontend_source_list_free(&scenes);
+
+	//Create Scale label
+	//-------------------
+	if (drawAudioMeter) {
+		for (int deciBells = 0; deciBells >= minimumLevel;
+		     deciBells -= 5) {
+			char integer_string[4];
+
+			sprintf(integer_string, "%d", deciBells);
+			multiviewLabels.emplace_back(
+				CreateLabel(integer_string, h / 10));
+		}
+	}
 }
 
 static inline uint32_t labelOffset(MultiviewLayout multiviewLayout,
@@ -801,6 +814,7 @@ void Multiview::InitAudioMeter()
 void Multiview::RenderAudioMeter()
 {
 	//calcPreviewProgram(true);
+
 	auto drawBox = [&](float cx, float cy, uint32_t colorVal) {
 		gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_SOLID);
 		gs_eparam_t *color =
@@ -831,53 +845,108 @@ void Multiview::RenderAudioMeter()
 			       (NUMBER_OF_VOLUME_METER_RECTENGELS + 5));
 	float sizeOfRectengles = ppiCY / ((ppiCY - unusableSpace) /
 					  (NUMBER_OF_VOLUME_METER_RECTENGELS));
-	float xCoordinate = sourceX + 100;
+	float xCoordinate = sourceX + 50;
+	float yCoordinate = 0;
+	size_t textvectorSize = multiviewLabels.size();
+	obs_source_t *decibelLabel = multiviewLabels[textvectorSize - 1];
+	float labelWidth = obs_source_get_width(decibelLabel);
 	//Draw Background
 	//---------------
 	gs_matrix_push();
 	paintAreaWithColor(
-		sourceX + HORIZONTAL_PADDING_OF_VOLUME_METER*2-20,
+		xCoordinate - 20,
 		sourceY + VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS,
-		/*200,
-		1200,*/
 		(ppiCX / sizeOfRectengles) * drawableChannels +
 			HORIZONTAL_PADDING_OF_VOLUME_METER *
-				(drawableChannels - 1)+40,
-		ppiCY - VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS*2,
+				(drawableChannels - 1) +
+			labelWidth + 40,
+		ppiCY - VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS * 2,
 		labelColor);
 	gs_matrix_pop();
+
 	//Draw VU meter
 	//-------------
 	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {
 		if (!isfinite(currentMagnitude[channelNr]))
 			continue;
+
 		float offsetY = VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS * 2;
-		int drawBars =
-			convertToInt(currentMagnitude[channelNr] * scale);
-		drawBars = NUMBER_OF_VOLUME_METER_RECTENGELS - drawBars;
+		offsetY += VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS;
+		offsetY += ppiCY / sizeOfRectengles;
+		yCoordinate = sourceY + ppiCY - offsetY;
+
+		float lastValue = currentMagnitude[channelNr];
+
+		int drawBars = NUMBER_OF_VOLUME_METER_RECTENGELS -
+			       convertToInt(lastValue * scale);
 		if (drawBars < 0)
 			drawBars = 0;
-		for (int i = 0; i < drawBars; i++) {
-			float sound = (i + 1) / scale;
-			if ((minimumLevel - sound) > -5) {
-				audioForegroundColor = 0xFFFF4C4C;
-			} else if ((minimumLevel - sound) > -20) {
-				audioForegroundColor = 0xFFFFFF4C;
+
+		int soundAfter = minimumLevel;
+
+		int indexOfScale = 1;
+
+		DrawScale(indexOfScale,
+			  xCoordinate + ppiCX / sizeOfRectengles + 5,
+			  yCoordinate);
+		soundAfter += 5;
+		indexOfScale++;
+		for (int i = 0; i < NUMBER_OF_VOLUME_METER_RECTENGELS; i++) {
+
+			float sound = minimumLevel - (i+1) / scale;
+
+
+			if (i < drawBars) {
+				if (sound > -6) {
+					audioForegroundColor = 0xFFFF4C4C;
+				} else if (sound > -20) {
+					audioForegroundColor = 0xFFFFFF4C;
+				} else {
+					audioForegroundColor = 0xFF4CFF4C;
+				}
+				paintAreaWithColor(xCoordinate, yCoordinate,
+						   ppiCX / sizeOfRectengles,
+						   ppiCY / sizeOfRectengles,
+						   audioForegroundColor);
 			} else {
-				audioForegroundColor = 0xFF4CFF4C;
+				audioForegroundColor = 0xF91F1F1F;
+				paintAreaWithColor(xCoordinate, yCoordinate,
+						   ppiCX / sizeOfRectengles,
+						   ppiCY / sizeOfRectengles,
+						   audioForegroundColor);
+			}
+
+			//Draw Scale by 5dB -s
+			//-----------
+			//float drawedSound = minimumLevel - (i + 1) * scale;
+
+			if (round(sound) >= soundAfter) {
+				DrawScale(indexOfScale,
+					  xCoordinate +
+						  ppiCX / sizeOfRectengles + 5,
+					  yCoordinate);
+				soundAfter += 5;
+				indexOfScale++;
 			}
 			offsetY += VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS;
 			offsetY += ppiCY / sizeOfRectengles;
-			float yCoordinate = sourceY + ppiCY - offsetY;
-			paintAreaWithColor(xCoordinate, yCoordinate,
-					   ppiCX / sizeOfRectengles,
-					   ppiCY / sizeOfRectengles,
-					   audioForegroundColor);
+			yCoordinate = sourceY + ppiCY - offsetY;
 		}
 		xCoordinate += HORIZONTAL_PADDING_OF_VOLUME_METER +
 			       ppiCX / sizeOfRectengles;
 	}
+}
 
+void Multiview::DrawScale(int indexFromLast, float xCoordinate, float yCoordinate)
+{
+	obs_source_t *decibelLabel =
+		multiviewLabels[multiviewLabels.size() - indexFromLast];
+	gs_matrix_push();
+	gs_matrix_translate3f(xCoordinate,
+			      yCoordinate, 0.0f);
+	//gs_matrix_scale3f(ppiScaleX, ppiScaleY, 1.0f);
+	obs_source_video_render(decibelLabel);
+	gs_matrix_pop();
 }
 
 void Multiview::OBSVolumeLevelChanged(void *data,
@@ -911,4 +980,13 @@ inline int Multiview::convertToInt(float number)
 		return min;
 	else
 		return int(number);
+}
+float Multiview::round(float var)
+{
+	// 37.66666 * 100 =3766.66
+	// 3766.66 + .5 =3767.16    for rounding off value
+	// then type cast to int so value is 3767
+	// then divided by 100 so the value converted into 37.67
+	float value = (int)(var * 100 + .5);
+	return (float)value / 100;
 }
