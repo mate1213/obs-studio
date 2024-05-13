@@ -818,13 +818,36 @@ void Multiview::RenderAudioMeter()
 		gs_matrix_pop();
 	};
 
-	float scale = NUMBER_OF_VOLUME_METER_RECTENGELS / minimumLevel;
+	int drawableChannels = 0;
 
+	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {
+		if (!isfinite(currentMagnitude[channelNr]))
+			continue;
+		drawableChannels++;
+	}
+
+	float scale = NUMBER_OF_VOLUME_METER_RECTENGELS / minimumLevel;
 	float unusableSpace = (VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS *
 			       (NUMBER_OF_VOLUME_METER_RECTENGELS + 5));
 	float sizeOfRectengles = ppiCY / ((ppiCY - unusableSpace) /
 					  (NUMBER_OF_VOLUME_METER_RECTENGELS));
 	float xCoordinate = sourceX + 100;
+	//Draw Background
+	//---------------
+	gs_matrix_push();
+	paintAreaWithColor(
+		sourceX + HORIZONTAL_PADDING_OF_VOLUME_METER*2-20,
+		sourceY + VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS,
+		/*200,
+		1200,*/
+		(ppiCX / sizeOfRectengles) * drawableChannels +
+			HORIZONTAL_PADDING_OF_VOLUME_METER *
+				(drawableChannels - 1)+40,
+		ppiCY - VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS*2,
+		labelColor);
+	gs_matrix_pop();
+	//Draw VU meter
+	//-------------
 	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {
 		if (!isfinite(currentMagnitude[channelNr]))
 			continue;
@@ -832,17 +855,15 @@ void Multiview::RenderAudioMeter()
 		int drawBars =
 			convertToInt(currentMagnitude[channelNr] * scale);
 		drawBars = NUMBER_OF_VOLUME_METER_RECTENGELS - drawBars;
-		if (drawBars<0)
+		if (drawBars < 0)
 			drawBars = 0;
 		for (int i = 0; i < drawBars; i++) {
-			float sound = (i+1) / scale;
+			float sound = (i + 1) / scale;
 			if ((minimumLevel - sound) > -5) {
 				audioForegroundColor = 0xFFFF4C4C;
-			}
-			else if ((minimumLevel - sound) > -20) {
+			} else if ((minimumLevel - sound) > -20) {
 				audioForegroundColor = 0xFFFFFF4C;
-			}
-			else {
+			} else {
 				audioForegroundColor = 0xFF4CFF4C;
 			}
 			offsetY += VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS;
@@ -856,6 +877,7 @@ void Multiview::RenderAudioMeter()
 		xCoordinate += HORIZONTAL_PADDING_OF_VOLUME_METER +
 			       ppiCX / sizeOfRectengles;
 	}
+
 }
 
 void Multiview::OBSVolumeLevelChanged(void *data,

@@ -403,6 +403,7 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HookWidget(ui->studioPortraitLayout, CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->prevProgLabelToggle,  CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewMouseSwitch, CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewDrawAudioMeter,CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewDrawNames,   CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewDrawAreas,   CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewLayout,      COMBO_CHANGED,  GENERAL_CHANGED);
@@ -1469,7 +1470,9 @@ void OBSBasicSettings::LoadGeneralSettings()
 
 	bool doubleClickSwitch = config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "TransitionOnDoubleClick");
+
 	ui->doubleClickSwitch->setChecked(doubleClickSwitch);
+
 
 	bool studioPortraitLayout = config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "StudioPortraitLayout");
@@ -1490,6 +1493,10 @@ void OBSBasicSettings::LoadGeneralSettings()
 	bool multiviewDrawAreas = config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "MultiviewDrawAreas");
 	ui->multiviewDrawAreas->setChecked(multiviewDrawAreas);
+
+	bool multiviewDrawAudioMeter = config_get_bool(
+		GetGlobalConfig(), "BasicWindow", "MultiviewDrawAudioMeter");
+	ui->multiviewDrawAudioMeter->setChecked(multiviewDrawAudioMeter);
 
 	ui->multiviewLayout->addItem(
 		QTStr("Basic.Settings.General.MultiviewLayout.Horizontal.Top"),
@@ -3388,6 +3395,10 @@ void OBSBasicSettings::SaveGeneralSettings()
 		config_set_bool(GetGlobalConfig(), "BasicWindow",
 				"TransitionOnDoubleClick",
 				ui->doubleClickSwitch->isChecked());
+	if (WidgetChanged(ui->multiviewDrawAudioMeter))
+		config_set_bool(GetGlobalConfig(), "BasicWindow",
+				"TransitionOnDoubleClick",
+				ui->multiviewDrawAudioMeter->isChecked());
 	if (WidgetChanged(ui->automaticSearch))
 		config_set_bool(GetGlobalConfig(), "General",
 				"AutomaticCollectionSearch",
@@ -3503,6 +3514,13 @@ void OBSBasicSettings::SaveGeneralSettings()
 		config_set_bool(GetGlobalConfig(), "BasicWindow",
 				"MultiviewDrawAreas",
 				ui->multiviewDrawAreas->isChecked());
+		multiviewChanged = true;
+	}
+
+	if (WidgetChanged(ui->multiviewDrawAudioMeter)) {
+		config_set_bool(GetGlobalConfig(), "BasicWindow",
+				"MultiviewDrawAudioMeter",
+				ui->multiviewDrawAudioMeter->isChecked());
 		multiviewChanged = true;
 	}
 

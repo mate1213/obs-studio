@@ -338,8 +338,8 @@ void OBSProjector::UpdateMultiview()
 
 	bool drawSafeArea = config_get_bool(GetGlobalConfig(), "BasicWindow",
 					    "MultiviewDrawAreas");
-	bool drawAudioMeter = true;
-	//config_get_bool(GetGlobalConfig(), "BasicWindow", "MultiviewDrawAudioMeter");
+	bool drawAudioMeter = config_get_bool(GetGlobalConfig(), "BasicWindow",
+						"MultiviewDrawAudioMeter");
 	mouseSwitching = config_get_bool(GetGlobalConfig(), "BasicWindow",
 					 "MultiviewMouseSwitch");
 

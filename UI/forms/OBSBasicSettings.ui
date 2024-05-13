@@ -862,9 +862,16 @@
                     </widget>
                    </item>
                    <item row="3" column="1">
+                    <widget class="QCheckBox" name="multiviewDrawAudioMeter">
+                     <property name="text">
+                      <string>Basic.Settings.General.MultiviewDrawAudioMeter</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="4" column="1">
                     <widget class="QComboBox" name="multiviewLayout"/>
                    </item>
-                   <item row="3" column="0">
+                   <item row="4" column="0">
                     <widget class="QLabel" name="label_64">
                      <property name="text">
                       <string>Basic.Settings.General.MultiviewLayout</string>
@@ -8030,6 +8037,7 @@
   <tabstop>multiviewMouseSwitch</tabstop>
   <tabstop>multiviewDrawNames</tabstop>
   <tabstop>multiviewDrawAreas</tabstop>
+  <tabstop>multiviewDrawAudioMeter</tabstop>
   <tabstop>multiviewLayout</tabstop>
   <tabstop>theme</tabstop>
   <tabstop>themeVariant</tabstop>
