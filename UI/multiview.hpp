@@ -40,7 +40,7 @@ private:
 	OBSVolMeter obs_volmeter;
 
 	std::vector<OBSWeakSource> multiviewScenes;
-	std::vector <OBSWeakSource> audioSource;
+	std::vector<OBSWeakSource> audioSource;
 	std::vector<OBSSource> multiviewLabels;
 
 	// Multiview position helpers
@@ -56,13 +56,19 @@ private:
 	static const uint32_t backgroundColor = 0xFF000000;
 	static const uint32_t previewColor = 0xFF00D000;
 	static const uint32_t programColor = 0xFFD00000;
-	uint32_t audioForegroundColor = 0xFF4CFF4C;
+	static const uint32_t backgroundNominalColor = 0xFF267F26; // Dark green
+	static const uint32_t backgroundWarningColor =0xFF7F7F26; // Dark yellow
+	static const uint32_t backgroundErrorColor = 0xFF7F2626; // Dark red
+	static const uint32_t foregroundNominalColor = 0xFF4CFF4C; // Bright green
+	static const uint32_t foregroundWarningColor = 0xFFFFFF4C; // Bright yellow
+	static const uint32_t foregroundErrorColor = 0xFFFF4C4C; // Bright red
 
 	// Volume printing
-	static void OBSVolumeLevelChanged(void *data,
-				   const float magnitude[MAX_AUDIO_CHANNELS],
-				   const float peak[MAX_AUDIO_CHANNELS],
-				   const float inputPeak[MAX_AUDIO_CHANNELS]);
+	static void
+	OBSVolumeLevelChanged(void *data,
+			      const float magnitude[MAX_AUDIO_CHANNELS],
+			      const float peak[MAX_AUDIO_CHANNELS],
+			      const float inputPeak[MAX_AUDIO_CHANNELS]);
 	void setLevels(const float magnitude[MAX_AUDIO_CHANNELS],
 		       const float peak[MAX_AUDIO_CHANNELS],
 		       const float inputPeak[MAX_AUDIO_CHANNELS]);

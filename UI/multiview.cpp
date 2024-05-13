@@ -858,8 +858,7 @@ void Multiview::RenderAudioMeter()
 		sourceY + VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS,
 		(ppiCX / sizeOfRectengles) * drawableChannels +
 			HORIZONTAL_PADDING_OF_VOLUME_METER *
-				(drawableChannels - 1) +
-			labelWidth + 40,
+			(drawableChannels - 1) + 40,
 		ppiCY - VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS * 2,
 		labelColor);
 	gs_matrix_pop();
@@ -886,47 +885,58 @@ void Multiview::RenderAudioMeter()
 
 		int indexOfScale = 1;
 
-		DrawScale(indexOfScale,
-			  xCoordinate + ppiCX / sizeOfRectengles + 5,
-			  yCoordinate);
-		soundAfter += 5;
-		indexOfScale++;
+		if (isfinite(currentMagnitude[channelNr + 1])) {
+			DrawScale(indexOfScale,
+				  xCoordinate + ppiCX / sizeOfRectengles + 5,
+				  yCoordinate);
+			soundAfter += 5;
+			indexOfScale++;
+		}
 		for (int i = 0; i < NUMBER_OF_VOLUME_METER_RECTENGELS; i++) {
 
-			float sound = minimumLevel - (i+1) / scale;
-
+			float sound = minimumLevel - (i + 1) / scale;
+			uint32_t selectedColor = backgroundNominalColor;
 
 			if (i < drawBars) {
 				if (sound > -6) {
-					audioForegroundColor = 0xFFFF4C4C;
+					selectedColor = foregroundErrorColor;
 				} else if (sound > -20) {
-					audioForegroundColor = 0xFFFFFF4C;
+					selectedColor = foregroundWarningColor;
 				} else {
-					audioForegroundColor = 0xFF4CFF4C;
+					selectedColor = foregroundNominalColor;
 				}
 				paintAreaWithColor(xCoordinate, yCoordinate,
 						   ppiCX / sizeOfRectengles,
 						   ppiCY / sizeOfRectengles,
-						   audioForegroundColor);
+						   selectedColor);
 			} else {
-				audioForegroundColor = 0xF91F1F1F;
+				if (sound > -6) {
+					selectedColor = backgroundErrorColor;
+				} else if (sound > -20) {
+					selectedColor = backgroundWarningColor;
+				} else {
+					selectedColor = backgroundNominalColor;
+				}
 				paintAreaWithColor(xCoordinate, yCoordinate,
 						   ppiCX / sizeOfRectengles,
 						   ppiCY / sizeOfRectengles,
-						   audioForegroundColor);
+						   selectedColor);
 			}
 
 			//Draw Scale by 5dB -s
 			//-----------
-			//float drawedSound = minimumLevel - (i + 1) * scale;
 
-			if (round(sound) >= soundAfter) {
-				DrawScale(indexOfScale,
-					  xCoordinate +
-						  ppiCX / sizeOfRectengles + 5,
-					  yCoordinate);
-				soundAfter += 5;
-				indexOfScale++;
+			if (isfinite(currentMagnitude[channelNr + 1])) {
+				if (round(sound) >= soundAfter) {
+					DrawScale(
+						indexOfScale,
+						xCoordinate +
+							ppiCX / sizeOfRectengles +
+							5,
+						yCoordinate);
+					soundAfter += 5;
+					indexOfScale++;
+				}
 			}
 			offsetY += VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS;
 			offsetY += ppiCY / sizeOfRectengles;
@@ -937,13 +947,13 @@ void Multiview::RenderAudioMeter()
 	}
 }
 
-void Multiview::DrawScale(int indexFromLast, float xCoordinate, float yCoordinate)
+void Multiview::DrawScale(int indexFromLast, float xCoordinate,
+			  float yCoordinate)
 {
 	obs_source_t *decibelLabel =
 		multiviewLabels[multiviewLabels.size() - indexFromLast];
 	gs_matrix_push();
-	gs_matrix_translate3f(xCoordinate,
-			      yCoordinate, 0.0f);
+	gs_matrix_translate3f(xCoordinate, yCoordinate, 0.0f);
 	//gs_matrix_scale3f(ppiScaleX, ppiScaleY, 1.0f);
 	obs_source_video_render(decibelLabel);
 	gs_matrix_pop();
