@@ -2183,6 +2183,8 @@ EXPORT void obs_output_set_video_encoder(obs_output_t *output,
 EXPORT void obs_output_set_video_encoder2(obs_output_t *output,
 					  obs_encoder_t *encoder, size_t idx);
 
+/** Sets the user volume for a source that has audio output */
+EXPORT void obs_output_set_volume(obs_source_t *source, float volume);
 /**
  * Sets the current audio encoder associated with this output,
  * required for encoded outputs.

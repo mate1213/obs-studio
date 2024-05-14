@@ -165,6 +165,7 @@ static void input_and_output(struct audio_output *audio, uint64_t audio_time,
 			     uint64_t prev_time)
 {
 	size_t bytes = AUDIO_OUTPUT_FRAMES * audio->block_size;
+	//NOTEFORME: our calculated data available at the end of this function
 	struct audio_output_data data[MAX_AUDIO_MIXES];
 	uint32_t active_mixes = 0;
 	uint64_t new_ts = 0;

@@ -4747,6 +4747,7 @@ void obs_source_set_volume(obs_source_t *source, float volume)
 		struct calldata data;
 		uint8_t stack[128];
 
+		//NOTEFORME: Example for singal creation
 		calldata_init_fixed(&data, stack, sizeof(stack));
 		calldata_set_ptr(&data, "source", source);
 		calldata_set_float(&data, "volume", volume);

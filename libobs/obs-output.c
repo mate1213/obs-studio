@@ -2380,6 +2380,34 @@ static bool prepare_audio(struct obs_output *output,
 	return true;
 }
 
+void obs_output_set_volume(struct obs_output *output, float volume)
+{
+	if (obs_source_valid(output, "obs_output_set_volume")) {
+		struct audio_action action = {.timestamp = os_gettime_ns(),
+					      .type = AUDIO_ACTION_VOL,
+					      .vol = volume};
+
+		struct calldata data;
+		uint8_t stack[128];
+
+		calldata_init_fixed(&data, stack, sizeof(stack));
+		calldata_set_ptr(&data, "output", output);
+		calldata_set_float(&data, "volume", volume);
+
+		signal_handler_signal(output->context.signals, "volume", &data);
+		if (!output->context.private)
+			signal_handler_signal(obs->signals, "output_volume",
+					      &data);
+
+		volume = (float)calldata_float(&data, "volume");
+
+		pthread_mutex_lock(&output->audio_actions_mutex);
+		da_push_back(output->audio_actions, &action);
+		pthread_mutex_unlock(&output->audio_actions_mutex);
+
+		output->user_volume = volume;
+	}
+}
 static void default_raw_audio_callback(void *param, size_t mix_idx,
 				       struct audio_data *in)
 {
