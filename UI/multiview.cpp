@@ -6,6 +6,7 @@
 #include "obs-audio-controls.h"
 #include "obs.h"
 #include "obs-source.h"
+#include "util/threading.h"
 
 #define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
 Multiview::Multiview()
@@ -22,6 +23,8 @@ Multiview::~Multiview()
 		if (src)
 			obs_source_dec_showing(src);
 	}
+
+	obs_remove_raw_audio_callback(0, OBSOutputVolumeLevelChanged, this);
 
 	obs_enter_graphics();
 	gs_vertexbuffer_destroy(actionSafeMargin);
@@ -801,8 +804,17 @@ void Multiview::InitAudioMeter()
 		channelId++;
 	}
 
+	Multiview *instace = this;
+
 	obs_volmeter = obs_volmeter_create(OBS_FADER_LOG);
-	obs_volmeter_add_callback(obs_volmeter, OBSVolumeLevelChanged, this);
+	//obs_volmeter_add_callback(obs_volmeter, OBSVolumeLevelChanged, this);
+
+	size_t mix_idx = 0;
+	struct audio_convert_info *arg2 = (struct audio_convert_info *)0;
+
+	obs_add_raw_audio_callback(mix_idx,
+				   (struct audio_convert_info const *)arg2,
+				   OBSOutputVolumeLevelChanged, this);
 
 	OBSSource src = OBSGetStrongRef(audioSource[0]);
 	obs_volmeter_attach_source(obs_volmeter, src);
@@ -810,7 +822,7 @@ void Multiview::InitAudioMeter()
 
 #define VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS 10
 #define HORIZONTAL_PADDING_OF_VOLUME_METER 50
-#define NUMBER_OF_VOLUME_METER_RECTENGELS 36
+#define NUMBER_OF_VOLUME_METER_RECTENGELS 48
 void Multiview::RenderAudioMeter()
 {
 	//calcPreviewProgram(true);
@@ -855,11 +867,11 @@ void Multiview::RenderAudioMeter()
 	gs_matrix_push();
 	paintAreaWithColor(
 		xCoordinate - 20,
-		sourceY + VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS,
+		sourceY + VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS*2,
 		(ppiCX / sizeOfRectengles) * drawableChannels +
 			HORIZONTAL_PADDING_OF_VOLUME_METER *
-			(drawableChannels - 1) + 40,
-		ppiCY - VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS * 2,
+				(drawableChannels - 1) + 40,
+		ppiCY - VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS * 4,
 		labelColor);
 	gs_matrix_pop();
 
@@ -966,12 +978,54 @@ void Multiview::OBSVolumeLevelChanged(void *data,
 {
 	Multiview *volControl = static_cast<Multiview *>(data);
 
-	volControl->setLevels(magnitude, peak, inputPeak);
+	volControl->setLevels(magnitude);
 }
 
-void Multiview::setLevels(const float magnitude[MAX_AUDIO_CHANNELS],
-			  const float peak[MAX_AUDIO_CHANNELS],
-			  const float inputPeak[MAX_AUDIO_CHANNELS])
+//ListenForOutputLevelChange
+void Multiview::OBSOutputVolumeLevelChanged(void *param, size_t mix_idx,
+					    struct audio_data *data)
+{
+	Multiview *volControl = static_cast<Multiview *>(param);
+	if (data) {
+
+		int nr_channels = 0;
+		for (int i = 0; i < MAX_AV_PLANES; i++) {
+			if (data->data[i])
+				nr_channels++;
+		}
+		nr_channels = CLAMP(nr_channels, 0, MAX_AUDIO_CHANNELS);
+		size_t nr_samples = data->frames;
+
+		int channel_nr = 0;
+		for (int plane_nr = 0; channel_nr < nr_channels; plane_nr++) {
+			if (channel_nr < nr_channels) {
+				float *samples = (float *)data->data[plane_nr];
+				if (!samples) {
+					continue;
+				}
+
+				float sum = 0.0;
+				for (size_t i = 0; i < nr_samples; i++) {
+					float sample = samples[i];
+					sum += sample * sample;
+				}
+				volControl->currentMagnitude[channel_nr] =
+					sqrtf(sum / nr_samples);
+			} else {
+				volControl->currentMagnitude[channel_nr] = 0.0f;
+			}
+			channel_nr++;
+		}
+		for (int channel_nr = 0; channel_nr < MAX_AUDIO_CHANNELS;
+		     channel_nr++) {
+			volControl->currentMagnitude[channel_nr] = obs_mul_to_db(
+				volControl->currentMagnitude[channel_nr]);
+		}
+	}
+}
+//until now
+
+void Multiview::setLevels(const float magnitude[MAX_AUDIO_CHANNELS])
 {
 	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {
 		currentMagnitude[channelNr] = magnitude[channelNr];

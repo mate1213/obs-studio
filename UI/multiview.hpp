@@ -2,6 +2,7 @@
 
 #include <obs.hpp>
 #include <vector>
+#include "util/threading.h"
 
 enum class MultiviewLayout : uint8_t {
 	HORIZONTAL_TOP_8_SCENES = 0,
@@ -24,10 +25,11 @@ public:
 		    bool drawSafeArea, bool drawAudioMeter);
 	void Render(uint32_t cx, uint32_t cy);
 	OBSSource GetSourceByPosition(int x, int y);
+	// Volume printing
+	float currentMagnitude[MAX_AUDIO_CHANNELS];
 
 private:
 	bool drawLabel, drawSafeArea, drawAudioMeter;
-	float currentMagnitude[MAX_AUDIO_CHANNELS];
 	double minimumLevel;
 	size_t maxSrcs, numSrcs;
 	MultiviewLayout multiviewLayout;
@@ -64,14 +66,13 @@ private:
 	static const uint32_t foregroundErrorColor = 0xFFFF4C4C; // Bright red
 
 	// Volume printing
-	static void
-	OBSVolumeLevelChanged(void *data,
+	static void OBSVolumeLevelChanged(void *data,
 			      const float magnitude[MAX_AUDIO_CHANNELS],
 			      const float peak[MAX_AUDIO_CHANNELS],
 			      const float inputPeak[MAX_AUDIO_CHANNELS]);
-	void setLevels(const float magnitude[MAX_AUDIO_CHANNELS],
-		       const float peak[MAX_AUDIO_CHANNELS],
-		       const float inputPeak[MAX_AUDIO_CHANNELS]);
+	static void OBSOutputVolumeLevelChanged(void *param, size_t mix_idx,
+						struct audio_data *data);
+	void setLevels(const float magnitude[MAX_AUDIO_CHANNELS]);
 	inline int convertToInt(float number);
 	void InitAudioMeter();
 	void RenderAudioMeter();

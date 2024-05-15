@@ -62,7 +62,10 @@ struct meter_cb {
 	obs_volmeter_updated_t callback;
 	void *param;
 };
-
+struct meter_cb_output {
+	audio_output_callback_t callback;
+	void *param;
+};
 struct obs_volmeter {
 	pthread_mutex_t mutex;
 	obs_source_t *source;
@@ -920,6 +923,7 @@ void obs_volmeter_add_callback(obs_volmeter_t *volmeter,
 	da_push_back(volmeter->callbacks, &cb);
 	pthread_mutex_unlock(&volmeter->callback_mutex);
 }
+
 
 void obs_volmeter_remove_callback(obs_volmeter_t *volmeter,
 				  obs_volmeter_updated_t callback, void *param)
