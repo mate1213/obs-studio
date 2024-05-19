@@ -864,14 +864,93 @@
                    <item row="3" column="1">
                     <widget class="QCheckBox" name="multiviewDrawAudioMeter">
                      <property name="text">
-                      <string>Basic.Settings.General.MultiviewDrawAudioMeter</string>
+                      <string>Basic.Settings.General.Multiview.DrawAudioMeter</string>
                      </property>
                     </widget>
                    </item>
                    <item row="4" column="1">
-                    <widget class="QComboBox" name="multiviewLayout"/>
+                    <widget class="QFrame" name="multiviewSingleTracks">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <layout class="QHBoxLayout" name="horizontalLayout_multitracks">
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item>
+                       <widget class="QRadioButton" name="multiviewOutTrack1">
+                        <property name="text">
+                         <string notr="true">1</string>
+                        </property>
+                        <property name="checked">
+                         <bool>true</bool>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="multiviewOutTrack2">
+                        <property name="text">
+                         <string notr="true">2</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="multiviewOutTrack3">
+                        <property name="text">
+                         <string notr="true">3</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="multiviewOutTrack4">
+                        <property name="text">
+                         <string notr="true">4</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="multiviewOutTrack5">
+                        <property name="text">
+                         <string notr="true">5</string>
+                        </property>
+                       </widget>
+                      </item>
+                      <item>
+                       <widget class="QRadioButton" name="multiviewOutTrack6">
+                        <property name="text">
+                         <string notr="true">6</string>
+                        </property>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
                    </item>
                    <item row="4" column="0">
+                    <widget class="QLabel" name="label_64">
+                     <property name="text">
+                      <string>Basic.Settings.General.Multiview.AudioMeterSource</string>
+                     </property>
+                     <property name="buddy">
+                      <cstring>multiviewLayout</cstring>
+                     </property>
+                    </widget>
+                   </item>
+                   <item row="5" column="1">
+                    <widget class="QComboBox" name="multiviewLayout"/>
+                   </item>
+                   <item row="5" column="0">
                     <widget class="QLabel" name="label_64">
                      <property name="text">
                       <string>Basic.Settings.General.MultiviewLayout</string>
@@ -8038,6 +8117,12 @@
   <tabstop>multiviewDrawNames</tabstop>
   <tabstop>multiviewDrawAreas</tabstop>
   <tabstop>multiviewDrawAudioMeter</tabstop>
+  <tabstop>multiviewOutTrack1</tabstop>
+  <tabstop>multiviewOutTrack2</tabstop>
+  <tabstop>multiviewOutTrack3</tabstop>
+  <tabstop>multiviewOutTrack4</tabstop>
+  <tabstop>multiviewOutTrack5</tabstop>
+  <tabstop>multiviewOutTrack6</tabstop>
   <tabstop>multiviewLayout</tabstop>
   <tabstop>theme</tabstop>
   <tabstop>themeVariant</tabstop>

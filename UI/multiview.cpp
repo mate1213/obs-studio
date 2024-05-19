@@ -26,7 +26,8 @@ Multiview::~Multiview()
 			obs_source_dec_showing(src);
 	}
 
-	obs_remove_raw_audio_callback(0, OBSOutputVolumeLevelChanged, this);
+	obs_remove_raw_audio_callback(selectedTrack,
+				      OBSOutputVolumeLevelChanged, this);
 
 	obs_enter_graphics();
 	gs_vertexbuffer_destroy(actionSafeMargin);
@@ -75,12 +76,19 @@ static OBSSource CreateLabel(const char *name, size_t h)
 }
 
 void Multiview::Update(MultiviewLayout multiviewLayout, bool drawLabel,
-		       bool drawSafeArea, bool drawAudioMeter)
+		       bool drawSafeArea, bool drawAudioMeter,
+		       int selectedNewAudio)
 {
 	this->multiviewLayout = multiviewLayout;
 	this->drawLabel = drawLabel;
 	this->drawSafeArea = drawSafeArea;
 	this->drawAudioMeter = drawAudioMeter;
+	if (this->selectedAudio != selectedNewAudio) {
+
+		obs_remove_raw_audio_callback(
+			selectedTrack, OBSOutputVolumeLevelChanged, this);
+		this->selectedAudio = selectedNewAudio;
+	}
 
 	multiviewScenes.clear();
 	multiviewLabels.clear();
@@ -793,8 +801,7 @@ void Multiview::InitAudioMeter()
 {
 	minimumLevel = -80.0f;
 	//Gether audioSources
-	uint32_t channelId = 1;
-	minimumLevel = -60.0f;
+	/*uint32_t channelId = 1;
 	std::vector<std::string> channels = {"desktop1", "desktop2", "mic1",
 					     "mic2",     "mic3",     "mic4"};
 	for (auto &channel : channels) {
@@ -807,28 +814,41 @@ void Multiview::InitAudioMeter()
 		channelId++;
 	}
 
-	Multiview *instace = this;
-
 	obs_volmeter = obs_volmeter_create(OBS_FADER_LOG);
-	//obs_volmeter_add_callback(obs_volmeter, OBSVolumeLevelChanged, this);
-
-	size_t mix_idx = 0;
-	struct audio_convert_info *arg2 = (struct audio_convert_info *)0;
-
-	obs_add_raw_audio_callback(mix_idx,
-				   (struct audio_convert_info const *)arg2,
-				   OBSOutputVolumeLevelChanged, this);
-
+	obs_volmeter_add_callback(obs_volmeter, OBSVolumeLevelChanged, this);
+	
 	OBSSource src = OBSGetStrongRef(audioSource[0]);
-	obs_volmeter_attach_source(obs_volmeter, src);
+	obs_volmeter_attach_source(obs_volmeter, src);*/
+}
+void Multiview::ConnectAudioOutput()
+{
+	if (selectedAudio != pow(2, selectedTrack)) {
+		if (selectedAudio & (1 << 0)) {
+			selectedTrack = 1;
+		} else if (selectedAudio & (1 << 1)) {
+			selectedTrack = 2;
+		} else if (selectedAudio & (1 << 2)) {
+			selectedTrack = 3;
+		} else if (selectedAudio & (1 << 3)) {
+			selectedTrack = 4;
+		} else if (selectedAudio & (1 << 4)) {
+			selectedTrack = 5;
+		} else if (selectedAudio & (1 << 5)) {
+			selectedTrack = 6;
+		}
+		struct audio_convert_info *arg2 =
+			(struct audio_convert_info *)0;
+
+		obs_add_raw_audio_callback(
+			selectedTrack, (struct audio_convert_info const *)arg2,
+			OBSOutputVolumeLevelChanged, this);
+	}
 }
 
-#define VERTICAL_PADDING_OF_VOLUME_METER_RECTENGELS 10
-#define HORIZONTAL_PADDING_OF_VOLUME_METER 50
-#define NUMBER_OF_VOLUME_METER_RECTENGELS 48
 void Multiview::RenderAudioMeter()
 {
 	//calcPreviewProgram(true);
+	ConnectAudioOutput();
 
 	auto drawBox = [&](float cx, float cy, uint32_t colorVal) {
 		gs_effect_t *solid = obs_get_base_effect(OBS_EFFECT_SOLID);
@@ -850,12 +870,12 @@ void Multiview::RenderAudioMeter()
 	auto paintAreaWithColor =
 		[&](rectangleForDraw
 			    rect, /* float tx, float ty, float cx, float cy,*/
-				      uint32_t color) {
-		gs_matrix_push();
+		    uint32_t color) {
+			gs_matrix_push();
 			gs_matrix_translate3f(rect.XPoint, rect.YPoint, 0.0f);
 			drawBox(rect.Width, rect.Height, color);
-		gs_matrix_pop();
-	};
+			gs_matrix_pop();
+		};
 
 	int drawableChannels = 0;
 	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {

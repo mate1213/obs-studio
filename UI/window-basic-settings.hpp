@@ -315,6 +315,7 @@ private:
 	/* output */
 	void LoadSimpleOutputSettings();
 	void LoadAdvOutputStreamingSettings();
+	void LoadMultiViewAudioMeterSettings();
 	void LoadAdvOutputStreamingEncoderProperties();
 	void LoadAdvOutputRecordingSettings();
 	void LoadAdvOutputRecordingEncoderProperties();
@@ -400,6 +401,7 @@ private:
 	QIcon GetAdvancedIcon() const;
 
 	int CurrentFLVTrack();
+	int MultiviewGetSelectedAudioTracks();
 	int SimpleOutGetSelectedAudioTracks();
 	int AdvOutGetSelectedAudioTracks();
 	int AdvOutGetStreamingSelectedAudioTracks();

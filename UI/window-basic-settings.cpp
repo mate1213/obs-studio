@@ -403,9 +403,15 @@ OBSBasicSettings::OBSBasicSettings(QWidget *parent)
 	HookWidget(ui->studioPortraitLayout, CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->prevProgLabelToggle,  CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewMouseSwitch, CHECK_CHANGED,  GENERAL_CHANGED);
-	HookWidget(ui->multiviewDrawAudioMeter,CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewDrawNames,   CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewDrawAreas,   CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewDrawAudioMeter, CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewOutTrack1,   CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewOutTrack2,   CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewOutTrack3,   CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewOutTrack4,   CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewOutTrack5,   CHECK_CHANGED,  GENERAL_CHANGED);
+	HookWidget(ui->multiviewOutTrack6,   CHECK_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->multiviewLayout,      COMBO_CHANGED,  GENERAL_CHANGED);
 	HookWidget(ui->theme, 		     COMBO_CHANGED,  APPEAR_CHANGED);
 	HookWidget(ui->themeVariant,	     COMBO_CHANGED,  APPEAR_CHANGED);
@@ -1473,7 +1479,6 @@ void OBSBasicSettings::LoadGeneralSettings()
 
 	ui->doubleClickSwitch->setChecked(doubleClickSwitch);
 
-
 	bool studioPortraitLayout = config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "StudioPortraitLayout");
 	ui->studioPortraitLayout->setChecked(studioPortraitLayout);
@@ -1497,6 +1502,8 @@ void OBSBasicSettings::LoadGeneralSettings()
 	bool multiviewDrawAudioMeter = config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "MultiviewDrawAudioMeter");
 	ui->multiviewDrawAudioMeter->setChecked(multiviewDrawAudioMeter);
+
+	LoadMultiViewAudioMeterSettings();
 
 	ui->multiviewLayout->addItem(
 		QTStr("Basic.Settings.General.MultiviewLayout.Horizontal.Top"),
@@ -2078,6 +2085,17 @@ void OBSBasicSettings::LoadAdvOutputStreamingSettings()
 	SwapMultiTrack(protocol);
 }
 
+void OBSBasicSettings::LoadMultiViewAudioMeterSettings()
+{
+	int audioMixes = config_get_int(GetGlobalConfig(), "BasicWindow",
+					"MultiviewAudioMeterSource");
+	ui->advOutMultiTrack1->setChecked(audioMixes & (1 << 0));
+	ui->advOutMultiTrack2->setChecked(audioMixes & (1 << 1));
+	ui->advOutMultiTrack3->setChecked(audioMixes & (1 << 2));
+	ui->advOutMultiTrack4->setChecked(audioMixes & (1 << 3));
+	ui->advOutMultiTrack5->setChecked(audioMixes & (1 << 4));
+	ui->advOutMultiTrack6->setChecked(audioMixes & (1 << 5));
+}
 OBSPropertiesView *
 OBSBasicSettings::CreateEncoderPropertyView(const char *encoder,
 					    const char *path, bool changed)
@@ -3395,10 +3413,7 @@ void OBSBasicSettings::SaveGeneralSettings()
 		config_set_bool(GetGlobalConfig(), "BasicWindow",
 				"TransitionOnDoubleClick",
 				ui->doubleClickSwitch->isChecked());
-	if (WidgetChanged(ui->multiviewDrawAudioMeter))
-		config_set_bool(GetGlobalConfig(), "BasicWindow",
-				"TransitionOnDoubleClick",
-				ui->multiviewDrawAudioMeter->isChecked());
+
 	if (WidgetChanged(ui->automaticSearch))
 		config_set_bool(GetGlobalConfig(), "General",
 				"AutomaticCollectionSearch",
@@ -3521,6 +3536,19 @@ void OBSBasicSettings::SaveGeneralSettings()
 		config_set_bool(GetGlobalConfig(), "BasicWindow",
 				"MultiviewDrawAudioMeter",
 				ui->multiviewDrawAudioMeter->isChecked());
+		multiviewChanged = true;
+	}
+
+	if (WidgetChanged(ui->multiviewSingleTracks) ||
+	    WidgetChanged(ui->multiviewOutTrack1) ||
+	    WidgetChanged(ui->multiviewOutTrack2) ||
+	    WidgetChanged(ui->multiviewOutTrack3) ||
+	    WidgetChanged(ui->multiviewOutTrack4) ||
+	    WidgetChanged(ui->multiviewOutTrack5) ||
+	    WidgetChanged(ui->multiviewOutTrack6)) {
+		config_set_int(GetGlobalConfig(), "BasicWindow",
+			       "MultiviewAudioMeterSource",
+			       MultiviewGetSelectedAudioTracks());
 		multiviewChanged = true;
 	}
 
@@ -6178,6 +6206,16 @@ int OBSBasicSettings::SimpleOutGetSelectedAudioTracks()
 	return tracks;
 }
 
+int OBSBasicSettings::MultiviewGetSelectedAudioTracks()
+{
+	int tracks = (ui->multiviewOutTrack1->isChecked() ? (1 << 0) : 0) |
+		     (ui->multiviewOutTrack2->isChecked() ? (1 << 1) : 0) |
+		     (ui->multiviewOutTrack3->isChecked() ? (1 << 2) : 0) |
+		     (ui->multiviewOutTrack4->isChecked() ? (1 << 3) : 0) |
+		     (ui->multiviewOutTrack5->isChecked() ? (1 << 4) : 0) |
+		     (ui->multiviewOutTrack6->isChecked() ? (1 << 5) : 0);
+	return tracks;
+}
 int OBSBasicSettings::AdvOutGetSelectedAudioTracks()
 {
 	int tracks = (ui->advOutRecTrack1->isChecked() ? (1 << 0) : 0) |

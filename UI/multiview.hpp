@@ -16,13 +16,12 @@ enum class MultiviewLayout : uint8_t {
 	SCENES_ONLY_16_SCENES = 8,
 	SCENES_ONLY_25_SCENES = 9,
 };
-
 class Multiview {
 public:
 	Multiview();
 	~Multiview();
 	void Update(MultiviewLayout multiviewLayout, bool drawLabel,
-		    bool drawSafeArea, bool drawAudioMeter);
+		    bool drawSafeArea, bool drawAudioMeter, int selectedNewAudio);
 	void Render(uint32_t cx, uint32_t cy);
 	OBSSource GetSourceByPosition(int x, int y);
 	// Volume printing
@@ -31,6 +30,8 @@ public:
 private:
 	bool drawLabel, drawSafeArea, drawAudioMeter;
 	double minimumLevel;
+	int selectedAudio;
+	int selectedTrack;
 	size_t maxSrcs, numSrcs;
 	MultiviewLayout multiviewLayout;
 	gs_vertbuffer_t *actionSafeMargin = nullptr;
@@ -76,6 +77,7 @@ private:
 	inline int convertToInt(float number);
 	void InitAudioMeter();
 	void RenderAudioMeter();
+	void ConnectAudioOutput();
 	void DrawScale(int indexFromLast, float xCoordinate, float yCoordinate);
 	float round(float var);
 };

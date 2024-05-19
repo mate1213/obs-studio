@@ -339,14 +339,17 @@ void OBSProjector::UpdateMultiview()
 	bool drawSafeArea = config_get_bool(GetGlobalConfig(), "BasicWindow",
 					    "MultiviewDrawAreas");
 	bool drawAudioMeter = config_get_bool(GetGlobalConfig(), "BasicWindow",
-						"MultiviewDrawAudioMeter");
+					      "MultiviewDrawAudioMeter");
+	int selectedOutput = config_get_int(GetGlobalConfig(), "BasicWindow",
+					      "MultiviewAudioMeterSource");
 	mouseSwitching = config_get_bool(GetGlobalConfig(), "BasicWindow",
 					 "MultiviewMouseSwitch");
 
 	transitionOnDoubleClick = config_get_bool(
 		GetGlobalConfig(), "BasicWindow", "TransitionOnDoubleClick");
 
-	multiview->Update(multiviewLayout, drawLabel, drawSafeArea, drawAudioMeter);
+	multiview->Update(multiviewLayout, drawLabel, drawSafeArea,
+			  drawAudioMeter, selectedOutput);
 }
 
 void OBSProjector::UpdateProjectorTitle(QString name)
