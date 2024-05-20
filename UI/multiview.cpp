@@ -26,7 +26,7 @@ Multiview::~Multiview()
 			obs_source_dec_showing(src);
 	}
 
-	obs_remove_raw_audio_callback(selectedTrack,
+	obs_remove_raw_audio_callback(selectedTrackIndex,
 				      OBSOutputVolumeLevelChanged, this);
 
 	obs_enter_graphics();
@@ -86,7 +86,7 @@ void Multiview::Update(MultiviewLayout multiviewLayout, bool drawLabel,
 	if (this->selectedAudio != selectedNewAudio) {
 
 		obs_remove_raw_audio_callback(
-			selectedTrack, OBSOutputVolumeLevelChanged, this);
+			selectedTrackIndex, OBSOutputVolumeLevelChanged, this);
 		this->selectedAudio = selectedNewAudio;
 	}
 
@@ -799,7 +799,7 @@ OBSSource Multiview::GetSourceByPosition(int x, int y)
 //TODO: Refactor AudioMeterDrawing into new class
 void Multiview::InitAudioMeter()
 {
-	minimumLevel = -80.0f;
+	minimumLevel = -60.0f;
 	//Gether audioSources
 	/*uint32_t channelId = 1;
 	std::vector<std::string> channels = {"desktop1", "desktop2", "mic1",
@@ -822,25 +822,26 @@ void Multiview::InitAudioMeter()
 }
 void Multiview::ConnectAudioOutput()
 {
-	if (selectedAudio != pow(2, selectedTrack)) {
+	if (selectedAudio != pow(2, selectedTrackIndex)) {
 		if (selectedAudio & (1 << 0)) {
-			selectedTrack = 1;
+			selectedTrackIndex = 0;
 		} else if (selectedAudio & (1 << 1)) {
-			selectedTrack = 2;
+			selectedTrackIndex = 1;
 		} else if (selectedAudio & (1 << 2)) {
-			selectedTrack = 3;
+			selectedTrackIndex = 2;
 		} else if (selectedAudio & (1 << 3)) {
-			selectedTrack = 4;
+			selectedTrackIndex = 3;
 		} else if (selectedAudio & (1 << 4)) {
-			selectedTrack = 5;
+			selectedTrackIndex = 4;
 		} else if (selectedAudio & (1 << 5)) {
-			selectedTrack = 6;
+			selectedTrackIndex = 5;
 		}
 		struct audio_convert_info *arg2 =
 			(struct audio_convert_info *)0;
 
 		obs_add_raw_audio_callback(
-			selectedTrack, (struct audio_convert_info const *)arg2,
+			selectedTrackIndex,
+			(struct audio_convert_info const *)arg2,
 			OBSOutputVolumeLevelChanged, this);
 	}
 }
@@ -882,6 +883,11 @@ void Multiview::RenderAudioMeter()
 		if (!isfinite(currentMagnitude[channelNr]))
 			continue;
 		drawableChannels++;
+	}
+
+	//fallback to stereo if no channel found
+	if (drawableChannels == 0) {
+		drawableChannels = 2;
 	}
 
 	float scale = NUMBER_OF_VOLUME_METER_RECTENGELS / minimumLevel;

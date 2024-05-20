@@ -31,7 +31,7 @@ private:
 	bool drawLabel, drawSafeArea, drawAudioMeter;
 	double minimumLevel;
 	int selectedAudio;
-	int selectedTrack;
+	int selectedTrackIndex;
 	size_t maxSrcs, numSrcs;
 	MultiviewLayout multiviewLayout;
 	gs_vertbuffer_t *actionSafeMargin = nullptr;
