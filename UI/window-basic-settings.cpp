@@ -2089,12 +2089,12 @@ void OBSBasicSettings::LoadMultiViewAudioMeterSettings()
 {
 	int audioMixes = config_get_int(GetGlobalConfig(), "BasicWindow",
 					"MultiviewAudioMeterSource");
-	ui->advOutMultiTrack1->setChecked(audioMixes & (1 << 0));
-	ui->advOutMultiTrack2->setChecked(audioMixes & (1 << 1));
-	ui->advOutMultiTrack3->setChecked(audioMixes & (1 << 2));
-	ui->advOutMultiTrack4->setChecked(audioMixes & (1 << 3));
-	ui->advOutMultiTrack5->setChecked(audioMixes & (1 << 4));
-	ui->advOutMultiTrack6->setChecked(audioMixes & (1 << 5));
+	ui->multiviewOutTrack1->setChecked(audioMixes & (1 << 0));
+	ui->multiviewOutTrack2->setChecked(audioMixes & (1 << 1));
+	ui->multiviewOutTrack3->setChecked(audioMixes & (1 << 2));
+	ui->multiviewOutTrack4->setChecked(audioMixes & (1 << 3));
+	ui->multiviewOutTrack5->setChecked(audioMixes & (1 << 4));
+	ui->multiviewOutTrack6->setChecked(audioMixes & (1 << 5));
 }
 OBSPropertiesView *
 OBSBasicSettings::CreateEncoderPropertyView(const char *encoder,
