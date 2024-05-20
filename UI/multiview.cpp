@@ -937,35 +937,33 @@ void Multiview::RenderAudioMeter()
 	xCoordinate += xRectSize / 2;
 
 	//Draw Scale by DRAW_SCALE_NUMBERS_INCREMENT dB -s
-	//-----------
-	for (int i = 1; i <= drawableChannels; i++) {
+	//-------------------------------------------------
+	for (int i = 1; i < drawableChannels; i++) {
 		float lableX =
 			xCoordinate + xRectSize * i + labelWidth * (i - 1);
-		if (isfinite(currentMagnitude[i])) {
-			float yOffset = yRectSize / 2;
-			float usableY = backRect.Height - yRectSize * 3;
-			float pixelIncrementOfScale =
-				usableY / numberOfScaleLabel;
-			for (int j = numberOfScaleLabel; j >= 0; j--) {
-				float labelY = yCoordinate + yOffset;
-				yOffset += pixelIncrementOfScale;
-				obs_source_t *curentDecibelLabel =
-					multiviewLabels[textvectorSize - j - 1];
-				float currentLabelWidth =
-					obs_source_get_width(
-						curentDecibelLabel) *
-					ppiScaleX;
-				float xOffset =
-					(labelWidth - currentLabelWidth) / 2;
-				DrawScale(j, lableX + xOffset, labelY);
-			}
+
+		float yOffset = yRectSize / 2 + labelHeight / 2;
+		float usableY =
+			backRect.Height - yRectSize * 3 - labelHeight / 2;
+		float pixelIncrementOfScale = usableY / numberOfScaleLabel;
+		for (int j = numberOfScaleLabel; j >= 0; j--) {
+			float labelY = yCoordinate + yOffset;
+			yOffset += pixelIncrementOfScale;
+			obs_source_t *curentDecibelLabel =
+				multiviewLabels[textvectorSize - j - 1];
+			float currentLabelWidth =
+				obs_source_get_width(curentDecibelLabel) *
+				ppiScaleX;
+			float xOffset = (labelWidth - currentLabelWidth) / 2;
+			DrawScale(j, lableX + xOffset, labelY);
 		}
 	}
 
 	//Draw VU meter
 	//-------------
 	for (int channelNr = 0; channelNr < MAX_AUDIO_CHANNELS; channelNr++) {
-		if (!isfinite(currentMagnitude[channelNr]))
+		if (!isfinite(currentMagnitude[channelNr]) &&
+		    channelNr >= drawableChannels)
 			continue;
 		float offsetY = yRectSize * 3;
 		yCoordinate = sourceY + ppiCY - offsetY;
