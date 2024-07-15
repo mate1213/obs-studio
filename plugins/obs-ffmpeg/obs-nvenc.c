@@ -270,14 +270,22 @@ static inline bool cuda_error_check(struct nvenc_data *enc, CUresult res,
 	if (res == CUDA_SUCCESS)
 		return true;
 
+	struct dstr message = {0};
+
 	const char *name, *desc;
 	if (cuda_get_error_desc(res, &name, &desc)) {
-		error("%s: CUDA call \"%s\" failed with %s (%d): %s", func,
-		      call, name, res, desc);
+		dstr_printf(&message,
+			    "%s: CUDA call \"%s\" failed with %s (%d): %s",
+			    func, call, name, res, desc);
 	} else {
-		error("%s: CUDA call \"%s\" failed with %d", func, call, res);
+		dstr_printf(&message, "%s: CUDA call \"%s\" failed with %d",
+			    func, call, res);
 	}
 
+	error("%s", message.array);
+	obs_encoder_set_last_error(enc->encoder, message.array);
+
+	dstr_free(&message);
 	return false;
 }
 
@@ -1363,11 +1371,23 @@ static bool init_encoder(struct nvenc_data *enc, enum codec_type codec,
 	int bf = (int)obs_data_get_int(settings, "bf");
 	const bool support_10bit =
 		nv_get_cap(enc, NV_ENC_CAPS_SUPPORT_10BIT_ENCODE);
+	const bool support_444 =
+		nv_get_cap(enc, NV_ENC_CAPS_SUPPORT_YUV444_ENCODE);
 	const int bf_max = nv_get_cap(enc, NV_ENC_CAPS_NUM_MAX_BFRAMES);
 
 	video_t *video = obs_encoder_video(enc->encoder);
 	const struct video_output_info *voi = video_output_get_info(video);
-	enc->in_format = get_preferred_format(voi->format);
+	enum video_format pref_format =
+		obs_encoder_get_preferred_video_format(enc->encoder);
+	if (pref_format == VIDEO_FORMAT_NONE)
+		pref_format = voi->format;
+
+	enc->in_format = get_preferred_format(pref_format);
+
+	if (enc->in_format == VIDEO_FORMAT_I444 && !support_444) {
+		NV_FAIL(obs_module_text("NVENC.444Unsupported"));
+		return false;
+	}
 
 	if (is_10_bit(enc) && !support_10bit) {
 		NV_FAIL(obs_module_text("NVENC.10bitUnsupported"));
