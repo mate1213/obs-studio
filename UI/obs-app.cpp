@@ -57,6 +57,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #include <filesystem>
+#include <util/windows/win-version.h>
 #else
 #include <signal.h>
 #include <pthread.h>
@@ -350,7 +351,6 @@ static inline bool too_many_repeated_entries(fstream &logFile, const char *msg,
 	static mutex log_mutex;
 	static const char *last_msg_ptr = nullptr;
 	static int last_char_sum = 0;
-	static char cmp_str[4096];
 	static int rep_count = 0;
 
 	int new_sum = sum_chars(output_str);
@@ -376,7 +376,6 @@ static inline bool too_many_repeated_entries(fstream &logFile, const char *msg,
 	}
 
 	last_msg_ptr = msg;
-	strcpy(cmp_str, output_str);
 	last_char_sum = new_sum;
 	rep_count = 0;
 
@@ -386,7 +385,7 @@ static inline bool too_many_repeated_entries(fstream &logFile, const char *msg,
 static void do_log(int log_level, const char *msg, va_list args, void *param)
 {
 	fstream &logFile = *static_cast<fstream *>(param);
-	char str[4096];
+	char str[8192];
 
 #ifndef _WIN32
 	va_list args2;
@@ -2001,7 +2000,8 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 	if (platform_theme && strcmp(platform_theme, "qt5ct") == 0)
 		unsetenv("QT_QPA_PLATFORMTHEME");
 
-#if defined(ENABLE_WAYLAND) && defined(USE_XDG)
+#if defined(ENABLE_WAYLAND) && defined(USE_XDG) && \
+	QT_VERSION < QT_VERSION_CHECK(6, 3, 0)
 	/* NOTE: Qt doesn't use the Wayland platform on GNOME, so we have to
 	 * force it using the QT_QPA_PLATFORM env var. It's still possible to
 	 * use other QPA platforms using this env var, or the -platform command
@@ -2907,6 +2907,35 @@ void OBSApp::commitData(QSessionManager &manager)
 }
 #endif
 
+#ifdef _WIN32
+static constexpr char vcRunErrorTitle[] = "Outdated Visual C++ Runtime";
+static constexpr char vcRunErrorMsg[] =
+	"OBS Studio requires a newer version of the Microsoft Visual C++ "
+	"Redistributables.\n\nYou will now be directed to the download page.";
+static constexpr char vcRunInstallerUrl[] =
+	"https://obsproject.com/visual-studio-2022-runtimes";
+
+static bool vc_runtime_outdated()
+{
+	win_version_info ver;
+	if (!get_dll_ver(L"msvcp140.dll", &ver))
+		return true;
+	/* Major is always 14 (hence 140.dll), so we only care about minor. */
+	if (ver.minor >= 40)
+		return false;
+
+	int choice = MessageBoxA(NULL, vcRunErrorMsg, vcRunErrorTitle,
+				 MB_OKCANCEL | MB_ICONERROR | MB_TASKMODAL);
+	if (choice == IDOK) {
+		/* Open the URL in the default browser. */
+		ShellExecuteA(NULL, "open", vcRunInstallerUrl, NULL, NULL,
+			      SW_SHOWNORMAL);
+	}
+
+	return true;
+}
+#endif
+
 int main(int argc, char *argv[])
 {
 #ifndef _WIN32
@@ -2933,6 +2962,9 @@ int main(int argc, char *argv[])
 #endif
 
 #ifdef _WIN32
+	// Abort as early as possible if MSVC runtime is outdated
+	if (vc_runtime_outdated())
+		return 1;
 	// Try to keep this as early as possible
 	install_dll_blocklist_hook();
 

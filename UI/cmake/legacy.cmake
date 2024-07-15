@@ -101,6 +101,7 @@ target_sources(
           forms/OBSAbout.ui
           forms/OBSAdvAudio.ui
           forms/OBSBasic.ui
+          forms/OBSBasicControls.ui
           forms/OBSBasicFilters.ui
           forms/OBSBasicInteraction.ui
           forms/OBSBasicProperties.ui
@@ -167,6 +168,8 @@ target_sources(
           audio-encoders.cpp
           audio-encoders.hpp
           balance-slider.hpp
+          basic-controls.cpp
+          basic-controls.hpp
           clickable-label.hpp
           double-slider.cpp
           double-slider.hpp
@@ -189,13 +192,12 @@ target_sources(
           menu-button.cpp
           menu-button.hpp
           mute-checkbox.hpp
+          noncheckable-button.hpp
           plain-text-edit.cpp
           plain-text-edit.hpp
           properties-view.cpp
           properties-view.hpp
           properties-view.moc.hpp
-          record-button.cpp
-          record-button.hpp
           remote-text.cpp
           remote-text.hpp
           scene-tree.cpp
@@ -279,6 +281,21 @@ target_sources(
           window-projector.hpp
           window-remux.cpp
           window-remux.hpp)
+
+target_sources(
+  obs
+  PRIVATE # cmake-format: sortable
+          goliveapi-censoredjson.cpp
+          goliveapi-censoredjson.hpp
+          goliveapi-network.cpp
+          goliveapi-network.hpp
+          goliveapi-postdata.cpp
+          goliveapi-postdata.hpp
+          multitrack-video-error.cpp
+          multitrack-video-error.hpp
+          multitrack-video-output.cpp
+          multitrack-video-output.hpp
+          system-info.hpp)
 
 target_sources(obs PRIVATE importers/importers.cpp importers/importers.hpp importers/classic.cpp importers/sl.cpp
                            importers/studio.cpp importers/xsplit.cpp)
@@ -366,6 +383,8 @@ if(OS_WINDOWS)
             win-update/updater/manifest.hpp
             ${CMAKE_BINARY_DIR}/obs.rc)
 
+  target_sources(obs PRIVATE system-info-windows.cpp)
+
   find_package(MbedTLS)
   target_link_libraries(obs PRIVATE Mbedtls::Mbedtls nlohmann_json::nlohmann_json OBS::blake2 Detours::Detours)
 
@@ -426,6 +445,8 @@ elseif(OS_MACOS)
   target_sources(obs PRIVATE platform-osx.mm)
   target_sources(obs PRIVATE forms/OBSPermissions.ui window-permissions.cpp window-permissions.hpp)
 
+  target_sources(obs PRIVATE system-info-macos.mm)
+
   if(ENABLE_WHATSNEW)
     find_library(SECURITY Security)
     find_package(nlohmann_json REQUIRED)
@@ -462,6 +483,8 @@ elseif(OS_POSIX)
   target_sources(obs PRIVATE platform-x11.cpp)
   target_link_libraries(obs PRIVATE Qt::GuiPrivate Qt::DBus)
 
+  target_sources(obs PRIVATE system-info-posix.cpp)
+
   target_compile_definitions(obs PRIVATE OBS_INSTALL_PREFIX="${OBS_INSTALL_PREFIX}"
                                          "$<$<BOOL:${LINUX_PORTABLE}>:LINUX_PORTABLE>")
   if(TARGET obspython)
@@ -479,16 +502,22 @@ elseif(OS_POSIX)
     target_compile_options(obs PRIVATE -Wno-unqualified-std-cast-call)
   endif()
 
-  if(OS_LINUX AND ENABLE_WHATSNEW)
-    find_package(MbedTLS)
-    find_package(nlohmann_json REQUIRED)
-    if(NOT MBEDTLS_FOUND)
-      obs_status(FATAL_ERROR "mbedTLS not found, but required for WhatsNew support on Linux")
+  if(OS_LINUX)
+    if(USE_XDG)
+      target_compile_definitions(obs PRIVATE USE_XDG)
     endif()
 
-    target_sources(obs PRIVATE update/crypto-helpers.hpp update/crypto-helpers-mbedtls.cpp update/shared-update.cpp
-                               update/shared-update.hpp update/update-helpers.cpp update/update-helpers.hpp)
-    target_link_libraries(obs PRIVATE Mbedtls::Mbedtls nlohmann_json::nlohmann_json OBS::blake2)
+    if(ENABLE_WHATSNEW)
+      find_package(MbedTLS)
+      find_package(nlohmann_json REQUIRED)
+      if(NOT MBEDTLS_FOUND)
+        obs_status(FATAL_ERROR "mbedTLS not found, but required for WhatsNew support on Linux")
+      endif()
+
+      target_sources(obs PRIVATE update/crypto-helpers.hpp update/crypto-helpers-mbedtls.cpp update/shared-update.cpp
+                                 update/shared-update.hpp update/update-helpers.cpp update/update-helpers.hpp)
+      target_link_libraries(obs PRIVATE Mbedtls::Mbedtls nlohmann_json::nlohmann_json OBS::blake2)
+    endif()
   endif()
 endif()
 
