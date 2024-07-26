@@ -3,19 +3,11 @@
 #include "obs-app.hpp"
 #include "platform.hpp"
 #include "display-helpers.hpp"
-#include "obs-audio-controls.h"
-#include "obs.h"
-#include "obs-source.h"
-#include "util/threading.h"
 
-#define CLAMP(x, min, max) ((x) < (min) ? (min) : ((x) > (max) ? (max) : (x)))
-#define NUMBER_OF_VOLUME_METER_RECTENGELS 48
-#define DRAW_SCALE_NUMBERS_INCREMENT 5
 Multiview::Multiview()
 {
 	InitSafeAreas(&actionSafeMargin, &graphicsSafeMargin,
 		      &fourByThreeSafeMargin, &leftLine, &topLine, &rightLine);
-	InitAudioMeter();
 }
 
 Multiview::~Multiview()
@@ -25,14 +17,10 @@ Multiview::~Multiview()
 		if (src)
 			obs_source_dec_showing(src);
 	}
-	if (audioMeter)
-	{
+	if (audioMeter) {
 		delete audioMeter;
 		audioMeter = nullptr;
 	}
-
-	obs_remove_raw_audio_callback(selectedTrackIndex,
-				      OBSOutputVolumeLevelChanged, this);
 
 	obs_enter_graphics();
 	gs_vertexbuffer_destroy(actionSafeMargin);
@@ -89,11 +77,6 @@ void Multiview::Update(MultiviewLayout multiviewLayout, bool drawLabel,
 	this->drawLabel = drawLabel;
 	this->drawSafeArea = drawSafeArea;
 	this->drawAudioMeter = drawAudioMeter;
-
-		obs_remove_raw_audio_callback(
-			selectedTrackIndex, OBSOutputVolumeLevelChanged, this);
-		this->selectedAudio = selectedNewAudio;
-	}
 
 	multiviewScenes.clear();
 	multiviewLabels.clear();
@@ -208,8 +191,7 @@ void Multiview::Update(MultiviewLayout multiviewLayout, bool drawLabel,
 			audioMeter = new MultiviewAudioMeter();
 		}
 		audioMeter->ConnectAudioOutput(selectedNewAudio);
-	}
-	else {
+	} else {
 		delete audioMeter;
 		audioMeter = nullptr;
 	}
